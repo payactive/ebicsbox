@@ -74,7 +74,7 @@ info:
     email: contact@ebicsbox.com
     url: http://www.ebicsbox.com/
   version: '0.1'
-host: localhost:80
+host: cip-109-107-38-49.gb1.brightbox.com
 basePath: "/"
 schemes:
 - https

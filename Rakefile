@@ -34,7 +34,7 @@ namespace :db do
   task :migrate, [:version] do |t, args|
     require "sequel"
     Sequel.extension :migration
-    db_url = ENV.fetch("TEST") ? ENV.fetch("TEST_DATABASE_URL") : ENV.fetch("DATABASE_URL")
+    db_url = ENV["TEST"] ? ENV.fetch("TEST_DATABASE_URL") : ENV.fetch("DATABASE_URL")
     DB = Sequel.connect(db_url)
     if args[:version]
       puts "Migrating to version #{args[:version]} on #{db_url}"
