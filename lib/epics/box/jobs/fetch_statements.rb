@@ -13,12 +13,14 @@ module Epics
         # when no new statements are available
         def self.fetch_new_statements(account_id, from = nil, to = nil)
           Box.logger.info("[Jobs::FetchStatements] Starting import. id=#{account_id}")
+
           account = Account.first!(id: account_id)
           mt940 = account.transport_client.STA(from, to)
-          Cmxl.parse(mt940).map(&:transactions).flatten.each do |transaction|
-            create_statement(account_id, transaction, mt940)
-          end
+          transactions = Cmxl.parse(mt940).map(&:transactions).flatten
+          imported = transactions.map { |transaction| create_statement(account_id, transaction, mt940) }
           account.imported_at!(Time.now) unless !!from or !!to
+
+          { fetched: transactions.count, imported: imported.select{ |obj| obj }.count }
         rescue Sequel::NoMatchingRow  => ex
           Box.logger.error("[Jobs::FetchStatements] Could not find account. account_id=#{account_id}")
         rescue Epics::Error::BusinessError => ex
@@ -28,7 +30,7 @@ module Epics
         def self.create_statement(account_id, data, raw_data)
           trx = {
             account_id: account_id,
-            sha: Digest::SHA2.hexdigest(data.information),
+            sha: Digest::SHA2.hexdigest([data.sha, data.date, data.amount_in_cents, data.sepa].join).to_s,
             date: data.date,
             entry_date: data.entry_date,
             amount: data.amount_in_cents,
@@ -51,9 +53,11 @@ module Epics
 
           if statement = Statement.where(sha: trx[:sha]).first
             Box.logger.debug("[Jobs::FetchStatements] Already imported. sha='#{statement.sha}'")
+            false
           else
             statement = Statement.create(trx)
             link_statement_to_transaction(account_id, statement)
+            true
           end
         end
 
