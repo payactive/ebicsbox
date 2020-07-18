@@ -27,6 +27,8 @@ RUN rm -rf docs
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod 755 /entrypoint.sh
 
+EXPOSE 5000
+
 ENTRYPOINT ["/entrypoint.sh"]
 
 CMD ["bin/start", "all"]
